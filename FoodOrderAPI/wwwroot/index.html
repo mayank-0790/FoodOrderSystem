@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOrder — Online Food Ordering & Restaurant Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar-brand { font-weight: 800; letter-spacing: 0.5px; }
+        .food-card { transition: transform 0.15s ease, box-shadow 0.15s ease; border: none; border-radius: 12px; overflow: hidden; }
+        .food-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .food-img { height: 180px; object-fit: cover; background-color: #e9ecef; }
+        .kpi-card { border: none; border-radius: 12px; border-left: 5px solid #fd7e14; }
+        .badge-status { font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand text-warning" href="#" onclick="showSection('menuSection')">
+            <i class="bi bi-fire me-1"></i>FoodOrder
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showSection('menuSection')"><i class="bi bi-grid me-1"></i>Menu</a>
+                </li>
+                <li class="nav-item d-none" id="navMyOrders">
+                    <a class="nav-link" href="#" onclick="showSection('ordersSection')"><i class="bi bi-bag-check me-1"></i>My Orders</a>
+                </li>
+                <li class="nav-item d-none" id="navAdminPanel">
+                    <a class="nav-link text-warning fw-semibold" href="#" onclick="showSection('adminSection')"><i class="bi bi-speedometer2 me-1"></i>Admin Dashboard</a>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-warning btn-sm position-relative d-none" id="btnCart" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas" onclick="loadCart()">
+                    <i class="bi bi-cart3 me-1"></i>Cart
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartBadge">0</span>
+                </button>
+                <span class="text-light small me-2 d-none" id="userGreeting"></span>
+                <button class="btn btn-warning btn-sm fw-semibold" id="btnLoginModal" data-bs-toggle="modal" data-bs-target="#authModal">
+                    <i class="bi bi-person-circle me-1"></i>Login / Register
+                </button>
+                <button class="btn btn-outline-light btn-sm d-none" id="btnLogout" onclick="logout()">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- TOAST NOTIFICATION -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast align-items-center text-bg-dark border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMsg">Action completed.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container my-4">
+
+    <!-- 1. MENU SECTION -->
+    <div id="menuSection" class="app-section">
+        <div class="p-4 mb-4 bg-dark text-white rounded-4 shadow-sm d-flex flex-wrap justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1">Freshly Cooked, Delivered Fast</h2>
+                <p class="text-secondary mb-0">Browse our curated menu, filter by category or price, and order in seconds.</p>
+            </div>
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2 mt-2 mt-md-0">Open Now • Express Delivery</span>
+        </div>
+
+        <!-- Search, Filter & Sort Controls -->
+        <div class="card border-0 shadow-sm mb-4 p-3 rounded-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted">Search Dish</label>
+                    <input type="text" id="filterSearch" class="form-control" placeholder="e.g., Paneer, Burger, Shake..." oninput="loadMenu()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted">Category</label>
+                    <select id="filterCategory" class="form-select" onchange="loadMenu()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold text-muted">Max Price (₹)</label>
+                    <input type="number" id="filterMaxPrice" class="form-control" placeholder="e.g., 500" oninput="loadMenu()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted">Sort By</label>
+                    <select id="filterSort" class="form-select" onchange="loadMenu()">
+                        <option value="">Name (A–Z)</option>
+                        <option value="name_desc">Name (Z–A)</option>
+                        <option value="price_asc">Price: Low to High</option>
+                        <option value="price_desc">Price: High to Low</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Grid -->
+        <div class="row g-4" id="menuGrid"></div>
+    </div>
+
+    <!-- 2. CUSTOMER ORDERS SECTION -->
+    <div id="ordersSection" class="app-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-warning"></i>My Orders & Invoices</h3>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadMyOrders()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+        </div>
+        <div id="myOrdersList" class="row g-3"></div>
+    </div>
+
+    <!-- 3. ADMIN DASHBOARD SECTION -->
+    <div id="adminSection" class="app-section d-none">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <h3 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-warning"></i>Admin Management & Analytics</h3>
+            <button class="btn btn-danger fw-semibold" onclick="downloadSalesReport()">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Download Sales Report (PDF)
+            </button>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card shadow-sm p-3">
+                    <div class="small text-muted">Total Revenue</div>
+                    <h4 class="fw-bold text-success mb-0" id="kpiRevenue">₹0</h4>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card shadow-sm p-3">
+                    <div class="small text-muted">Total Orders</div>
+                    <h4 class="fw-bold mb-0" id="kpiOrders">0</h4>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card shadow-sm p-3">
+                    <div class="small text-muted">Active / Pending</div>
+                    <h4 class="fw-bold text-warning mb-0" id="kpiPending">0</h4>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card shadow-sm p-3">
+                    <div class="small text-muted">Customers / Dishes</div>
+                    <h4 class="fw-bold mb-0" id="kpiUsersItems">0 / 0</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Tabs -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active fw-semibold" data-bs-toggle="tab" data-bs-target="#tabOrders" onclick="loadAllAdminOrders()">Manage Orders</button></li>
+            <li class="nav-item"><button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#tabMenu" onclick="loadAdminMenuTable()">Manage Menu Items</button></li>
+            <li class="nav-item"><button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#tabCategories" onclick="loadAdminCategories()">Manage Categories</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Tab 1: Orders Management -->
+            <div class="tab-pane fade show active" id="tabOrders">
+                <div class="mb-3 d-flex gap-2">
+                    <select id="adminOrderStatusFilter" class="form-select w-auto" onchange="loadAllAdminOrders()">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Preparing">Preparing</option>
+                        <option value="OutForDelivery">Out For Delivery</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="table-responsive bg-white rounded shadow-sm p-3">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminOrdersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: Menu Items Management -->
+            <div class="tab-pane fade" id="tabMenu">
+                <div class="card border-0 shadow-sm p-3 mb-4">
+                    <h6 class="fw-bold mb-3">Add New Menu Item</h6>
+                    <form id="addMenuForm" onsubmit="createMenuItem(event)">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <input type="text" id="newDishName" class="form-control" placeholder="Dish Name" required>
+                            </div>
+                            <div class="col-md-2">
+                                <select id="newDishCategory" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" step="0.01" id="newDishPrice" class="form-control" placeholder="Price (₹)" required>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="file" id="newDishImage" class="form-control" accept="image/*">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-warning w-100 fw-semibold"><i class="bi bi-plus-lg me-1"></i>Add Dish</button>
+                            </div>
+                            <div class="col-12">
+                                <input type="text" id="newDishDesc" class="form-control form-control-sm" placeholder="Short description (ingredients, spice level, etc.)">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-responsive bg-white rounded shadow-sm p-3">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminMenuBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 3: Categories Management -->
+            <div class="tab-pane fade" id="tabCategories">
+                <div class="card border-0 shadow-sm p-3 mb-3">
+                    <form class="row g-2" onsubmit="createCategory(event)">
+                        <div class="col-md-4"><input type="text" id="newCatName" class="form-control" placeholder="Category Name" required></div>
+                        <div class="col-md-6"><input type="text" id="newCatDesc" class="form-control" placeholder="Description"></div>
+                        <div class="col-md-2"><button type="submit" class="btn btn-dark w-100">Add Category</button></div>
+                    </form>
+                </div>
+                <div class="table-responsive bg-white rounded shadow-sm p-3">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light"><tr><th>ID</th><th>Name</th><th>Description</th><th>Dishes</th><th>Action</th></tr></thead>
+                        <tbody id="adminCategoriesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CART OFFCANVAS -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="cartOffcanvas">
+    <div class="offcanvas-header bg-dark text-white">
+        <h5 class="offcanvas-title"><i class="bi bi-cart3 me-2 text-warning"></i>Your Cart</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column justify-content-between">
+        <div id="cartItemsList"></div>
+        <div class="border-top pt-3 mt-3">
+            <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+                <span>Total:</span>
+                <span class="text-success" id="cartTotal">₹0.00</span>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small fw-semibold">Delivery Address</label>
+                <textarea id="checkoutAddress" class="form-control form-control-sm" rows="2" placeholder="Enter full delivery address..." required></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Payment Method</label>
+                <select id="checkoutPayment" class="form-select form-select-sm">
+                    <option value="COD">Cash on Delivery (COD)</option>
+                    <option value="UPI">UPI / QR Instant Pay</option>
+                    <option value="Card">Credit / Debit Card</option>
+                </select>
+            </div>
+            <button class="btn btn-warning w-100 fw-bold py-2" onclick="checkoutOrder()">
+                <i class="bi bi-check2-circle me-1"></i>Place Order Now
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- LOGIN / REGISTER MODAL -->
+<div class="modal fade" id="authModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Account Access</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ul class="nav nav-pills nav-fill mb-3">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#loginPane">Login</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#registerPane">Register</button></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="loginPane">
+                        <form onsubmit="handleLogin(event)">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="loginEmail" class="form-control" placeholder="admin@foodorder.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" id="loginPassword" class="form-control" placeholder="Admin@123" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100 fw-bold">Sign In</button>
+                            <div class="form-text text-center mt-2">Default Admin: <code>admin@foodorder.com</code> / <code>Admin@123</code></div>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="registerPane">
+                        <form onsubmit="handleRegister(event)">
+                            <div class="mb-2"><input type="text" id="regName" class="form-control" placeholder="Full Name" required></div>
+                            <div class="mb-2"><input type="email" id="regEmail" class="form-control" placeholder="Email Address" required></div>
+                            <div class="mb-2"><input type="password" id="regPassword" class="form-control" placeholder="Password (min 6 chars)" required></div>
+                            <div class="mb-2"><input type="text" id="regPhone" class="form-control" placeholder="Phone Number"></div>
+                            <div class="mb-3"><input type="text" id="regAddress" class="form-control" placeholder="Default Delivery Address"></div>
+                            <button type="submit" class="btn btn-dark w-100 fw-bold">Create Customer Account</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API = '/api';
+    let token = localStorage.getItem('token') || '';
+    let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+
+    function showToast(msg) {
+        document.getElementById('toastMsg').textContent = msg;
+        new bootstrap.Toast(document.getElementById('liveToast')).show();
+    }
+
+    function authHeaders(isJson = true) {
+        const h = {};
+        if (token) h['Authorization'] = `Bearer ${token}`;
+        if (isJson) h['Content-Type'] = 'application/json';
+        return h;
+    }
+
+    function showSection(sectionId) {
+        document.querySelectorAll('.app-section').forEach(s => s.classList.add('d-none'));
+        document.getElementById(sectionId).classList.remove('d-none');
+        if (sectionId === 'ordersSection') loadMyOrders();
+        if (sectionId === 'adminSection') { loadAdminAnalytics(); loadAllAdminOrders(); }
+    }
+
+    function updateAuthUI() {
+        const loggedIn = !!token && !!currentUser;
+        document.getElementById('btnLoginModal').classList.toggle('d-none', loggedIn);
+        document.getElementById('btnLogout').classList.toggle('d-none', !loggedIn);
+        document.getElementById('btnCart').classList.toggle('d-none', !loggedIn);
+        document.getElementById('navMyOrders').classList.toggle('d-none', !loggedIn);
+
+        const isAdmin = loggedIn && currentUser.role === 'Admin';
+        document.getElementById('navAdminPanel').classList.toggle('d-none', !isAdmin);
+
+        const greet = document.getElementById('userGreeting');
+        if (loggedIn) {
+            greet.textContent = `Hi, ${currentUser.fullName} (${currentUser.role})`;
+            greet.classList.remove('d-none');
+            loadCart();
+        } else {
+            greet.classList.add('d-none');
+        }
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const res = await fetch(`${API}/Auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPassword').value
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) return showToast(data.message || 'Login failed');
+
+        token = data.token;
+        currentUser = data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+        updateAuthUI();
+        showToast(`Welcome back, ${data.fullName}!`);
+    }
+
+    async function handleRegister(e) {
+        e.preventDefault();
+        const res = await fetch(`${API}/Auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fullName: document.getElementById('regName').value,
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value,
+                phone: document.getElementById('regPhone').value,
+                address: document.getElementById('regAddress').value
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) return showToast(data.message || 'Registration failed');
+
+        token = data.token;
+        currentUser = data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+        updateAuthUI();
+        showToast('Account created successfully!');
+    }
+
+    function logout() {
+        token = '';
+        currentUser = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        updateAuthUI();
+        showSection('menuSection');
+        showToast('Logged out.');
+    }
+
+    async function loadCategories() {
+        const res = await fetch(`${API}/Categories`);
+        const cats = await res.json();
+        const filterSel = document.getElementById('filterCategory');
+        const adminSel = document.getElementById('newDishCategory');
+        filterSel.innerHTML = '<option value="">All Categories</option>';
+        adminSel.innerHTML = '';
+        cats.forEach(c => {
+            filterSel.innerHTML += `<option value="${c.categoryId}">${c.name}</option>`;
+            adminSel.innerHTML += `<option value="${c.categoryId}">${c.name}</option>`;
+        });
+    }
+
+    async function loadMenu() {
+        const params = new URLSearchParams();
+        const search = document.getElementById('filterSearch').value;
+        const catId = document.getElementById('filterCategory').value;
+        const maxPrice = document.getElementById('filterMaxPrice').value;
+        const sortBy = document.getElementById('filterSort').value;
+
+        if (search) params.append('search', search);
+        if (catId) params.append('categoryId', catId);
+        if (maxPrice) params.append('maxPrice', maxPrice);
+        if (sortBy) params.append('sortBy', sortBy);
+
+        const res = await fetch(`${API}/MenuItems?${params.toString()}`);
+        const items = await res.json();
+        const grid = document.getElementById('menuGrid');
+
+        if (!items.length) {
+            grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No dishes match your filter criteria.</div>';
+            return;
+        }
+
+        grid.innerHTML = items.map(item => `
+            <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="card food-card h-100 shadow-sm">
+                    <img src="${item.imageUrl || 'https://placehold.co/400x250/212529/ffc107?text=' + encodeURIComponent(item.name)}" class="food-img w-100" alt="${item.name}">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="badge bg-light text-dark border">${item.categoryName}</span>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>${item.prepTimeMinutes}m</small>
+                            </div>
+                            <h5 class="card-title fw-bold mb-1">${item.name}</h5>
+                            <p class="card-text small text-muted">${item.description || 'Freshly prepared chef special.'}</p>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
+                            <span class="fs-5 fw-bold text-dark">₹${item.price.toFixed(2)}</span>
+                            <button class="btn btn-warning btn-sm fw-semibold" onclick="addToCart(${item.menuItemId})" ${!item.isAvailable ? 'disabled' : ''}>
+                                ${item.isAvailable ? '<i class="bi bi-cart-plus me-1"></i>Add' : 'Sold Out'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function addToCart(menuItemId) {
+        if (!token) {
+            new bootstrap.Modal(document.getElementById('authModal')).show();
+            return showToast('Please login to add items to your cart.');
+        }
+        const res = await fetch(`${API}/Cart`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ menuItemId, quantity: 1 })
+        });
+        if (res.ok) {
+            showToast('Added to cart!');
+            loadCart();
+        }
+    }
+
+    async function loadCart() {
+        if (!token) return;
+        const res = await fetch(`${API}/Cart`, { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('cartBadge').textContent = data.items.reduce((sum, i) => sum + i.quantity, 0);
+        document.getElementById('cartTotal').textContent = `₹${data.total.toFixed(2)}`;
+
+        const list = document.getElementById('cartItemsList');
+        if (!data.items.length) {
+            list.innerHTML = '<p class="text-muted text-center my-5">Your cart is empty.</p>';
+            return;
+        }
+        list.innerHTML = data.items.map(i => `
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <div class="fw-semibold">${i.name}</div>
+                    <small class="text-muted">₹${i.price} × ${i.quantity} = ₹${i.subtotal.toFixed(2)}</small>
+                </div>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" onclick="updateCartQty(${i.cartItemId}, ${i.quantity - 1})">-</button>
+                    <button class="btn btn-outline-secondary" onclick="updateCartQty(${i.cartItemId}, ${i.quantity + 1})">+</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function updateCartQty(cartItemId, quantity) {
+        await fetch(`${API}/Cart/${cartItemId}?quantity=${quantity}`, { method: 'PUT', headers: authHeaders() });
+        loadCart();
+    }
+
+    async function checkoutOrder() {
+        const address = document.getElementById('checkoutAddress').value.trim();
+        if (!address) return showToast('Please enter a delivery address.');
+
+        const res = await fetch(`${API}/Orders/checkout`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                deliveryAddress: address,
+                paymentMethod: document.getElementById('checkoutPayment').value
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) return showToast(data.message || 'Checkout failed');
+
+        bootstrap.Offcanvas.getInstance(document.getElementById('cartOffcanvas')).hide();
+        loadCart();
+        showToast(`Order #${data.orderId} placed! Ref: ${data.transactionRef}`);
+        showSection('ordersSection');
+    }
+
+    async function loadMyOrders() {
+        const res = await fetch(`${API}/Orders/my-orders`, { headers: authHeaders() });
+        const orders = await res.json();
+        const container = document.getElementById('myOrdersList');
+        if (!orders.length) {
+            container.innerHTML = '<div class="col-12 text-center py-5 text-muted">You have not placed any orders yet.</div>';
+            return;
+        }
+        container.innerHTML = orders.map(o => `
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold fs-5">Order #${o.orderId}</span>
+                        <span class="badge bg-warning text-dark badge-status">${o.status}</span>
+                    </div>
+                    <div class="small text-muted mb-2">${new Date(o.orderDate).toLocaleString()} • ${o.paymentMethod} (${o.paymentStatus})</div>
+                    <ul class="list-group list-group-flush small mb-3">
+                        ${o.items.map(i => `<li class="list-group-item px-0 d-flex justify-content-between"><span>${i.name} × ${i.quantity}</span><span>₹${i.subtotal.toFixed(2)}</span></li>`).join('')}
+                    </ul>
+                    <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                        <span class="fw-bold text-success">Total: ₹${o.totalAmount.toFixed(2)}</span>
+                        <button class="btn btn-outline-danger btn-sm" onclick="downloadInvoice(${o.orderId})">
+                            <i class="bi bi-file-pdf me-1"></i>PDF Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function downloadInvoice(orderId) {
+        const res = await fetch(`${API}/Reports/invoice/${orderId}`, { headers: authHeaders(false) });
+        if (!res.ok) return showToast('Unable to download invoice.');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Invoice_Order_${orderId}.pdf`;
+        a.click();
+    }
+
+    async function downloadSalesReport() {
+        const res = await fetch(`${API}/Reports/sales`, { headers: authHeaders(false) });
+        if (!res.ok) return showToast('Unable to download sales report.');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Sales_Report.pdf`;
+        a.click();
+    }
+
+    async function loadAdminAnalytics() {
+        const res = await fetch(`${API}/Reports/analytics`, { headers: authHeaders() });
+        if (!res.ok) return;
+        const d = await res.json();
+        document.getElementById('kpiRevenue').textContent = `₹${d.totalRevenue.toFixed(2)}`;
+        document.getElementById('kpiOrders').textContent = d.totalOrders;
+        document.getElementById('kpiPending').textContent = d.pendingOrders;
+        document.getElementById('kpiUsersItems').textContent = `${d.totalCustomers} / ${d.totalMenuItems}`;
+    }
+
+    async function loadAllAdminOrders() {
+        const status = document.getElementById('adminOrderStatusFilter').value;
+        const res = await fetch(`${API}/Orders${status ? '?status=' + status : ''}`, { headers: authHeaders() });
+        const orders = await res.json();
+        document.getElementById('adminOrdersBody').innerHTML = orders.map(o => `
+            <tr>
+                <td class="fw-bold">#${o.orderId}</td>
+                <td>${o.customerName}<br><small class="text-muted">${o.customerEmail}</small></td>
+                <td class="small">${o.items.map(i => `${i.name} (${i.quantity})`).join(', ')}</td>
+                <td class="fw-bold">₹${o.totalAmount.toFixed(2)}</td>
+                <td class="small">${o.paymentMethod}<br><span class="badge bg-light text-dark border">${o.paymentStatus}</span></td>
+                <td>
+                    <select class="form-select form-select-sm" onchange="updateOrderStatus(${o.orderId}, this.value)">
+                        ${['Pending','Preparing','OutForDelivery','Delivered','Cancelled'].map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="downloadInvoice(${o.orderId})"><i class="bi bi-file-pdf"></i></button></td>
+            </tr>
+        `).join('');
+    }
+
+    async function updateOrderStatus(orderId, status) {
+        const res = await fetch(`${API}/Orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+            showToast(`Order #${orderId} updated to ${status}`);
+            loadAdminAnalytics();
+        }
+    }
+
+    async function createMenuItem(e) {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('Name', document.getElementById('newDishName').value);
+        fd.append('CategoryId', document.getElementById('newDishCategory').value);
+        fd.append('Price', document.getElementById('newDishPrice').value);
+        fd.append('Description', document.getElementById('newDishDesc').value);
+        fd.append('IsAvailable', 'true');
+        fd.append('PrepTimeMinutes', '15');
+        const fileInput = document.getElementById('newDishImage');
+        if (fileInput.files.length > 0) fd.append('ImageFile', fileInput.files[0]);
+
+        const res = await fetch(`${API}/MenuItems`, {
+            method: 'POST',
+            headers: authHeaders(false),
+            body: fd
+        });
+        if (res.ok) {
+            document.getElementById('addMenuForm').reset();
+            showToast('Dish added to menu!');
+            loadAdminMenuTable();
+            loadMenu();
+        }
+    }
+
+    async function loadAdminMenuTable() {
+        const res = await fetch(`${API}/MenuItems`);
+        const items = await res.json();
+        document.getElementById('adminMenuBody').innerHTML = items.map(m => `
+            <tr>
+                <td><img src="${m.imageUrl || 'https://placehold.co/60x40'}" width="60" height="40" class="rounded object-fit-cover"></td>
+                <td class="fw-semibold">${m.name}</td>
+                <td>${m.categoryName}</td>
+                <td>₹${m.price.toFixed(2)}</td>
+                <td><span class="badge ${m.isAvailable ? 'bg-success' : 'bg-secondary'}">${m.isAvailable ? 'Available' : 'Unavailable'}</span></td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteMenuItem(${m.menuItemId})"><i class="bi bi-trash"></i></button></td>
+            </tr>
+        `).join('');
+    }
+
+    async function deleteMenuItem(id) {
+        if (!confirm('Delete this dish?')) return;
+        const res = await fetch(`${API}/MenuItems/${id}`, { method: 'DELETE', headers: authHeaders() });
+        if (res.ok) {
+            showToast('Dish deleted.');
+            loadAdminMenuTable();
+            loadMenu();
+        }
+    }
+
+    async function createCategory(e) {
+        e.preventDefault();
+        const res = await fetch(`${API}/Categories`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                name: document.getElementById('newCatName').value,
+                description: document.getElementById('newCatDesc').value,
+                isActive: true
+            })
+        });
+        if (res.ok) {
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatDesc').value = '';
+            showToast('Category added.');
+            loadAdminCategories();
+            loadCategories();
+        }
+    }
+
+    async function loadAdminCategories() {
+        const res = await fetch(`${API}/Categories`);
+        const cats = await res.json();
+        document.getElementById('adminCategoriesBody').innerHTML = cats.map(c => `
+            <tr>
+                <td>${c.categoryId}</td>
+                <td class="fw-semibold">${c.name}</td>
+                <td>${c.description || '-'}</td>
+                <td>${c.itemCount}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${c.categoryId})"><i class="bi bi-trash"></i></button></td>
+            </tr>
+        `).join('');
+    }
+
+    async function deleteCategory(id) {
+        if (!confirm('Delete this category?')) return;
+        const res = await fetch(`${API}/Categories/${id}`, { method: 'DELETE', headers: authHeaders() });
+        if (res.ok) {
+            showToast('Category deleted.');
+            loadAdminCategories();
+            loadCategories();
+        }
+    }
+
+    // Initialize App
+    updateAuthUI();
+    loadCategories();
+    loadMenu();
+</script>
+</body>
+</html>
